@@ -1,0 +1,7 @@
+{
+  "name": "Indian Language Voice Assistant",
+  "description": "A conversational voice application that understands and responds in various Indian languages. Users can ask questions, and the app will search for answers and reply in voice.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
