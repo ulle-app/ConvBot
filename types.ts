@@ -1,6 +1,7 @@
 
 export enum AppStatus {
   IDLE = 'IDLE',
+  GREETING = 'GREETING',
   LISTENING = 'LISTENING',
   PROCESSING = 'PROCESSING',
   SPEAKING = 'SPEAKING',

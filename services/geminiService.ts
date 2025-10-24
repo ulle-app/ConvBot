@@ -15,7 +15,6 @@ export class GeminiService {
   private ai: GoogleGenAI;
   private onTranscriptUpdate: TranscriptCallback;
   private onStatusUpdate: StatusCallback;
-  private gender: 'male' | 'female';
 
   private session: LiveSession | null = null;
   private sessionPromise: Promise<LiveSession> | null = null;
@@ -33,35 +32,82 @@ export class GeminiService {
   private currentOutputTranscription = '';
   private currentGrounding: GroundingSource[] = [];
 
-  constructor(onTranscriptUpdate: TranscriptCallback, onStatusUpdate: StatusCallback, gender: 'male' | 'female') {
+  constructor(onTranscriptUpdate: TranscriptCallback, onStatusUpdate: StatusCallback) {
     if (!process.env.API_KEY) {
       throw new Error("API_KEY environment variable not set");
     }
     this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     this.onTranscriptUpdate = onTranscriptUpdate;
     this.onStatusUpdate = onStatusUpdate;
-    this.gender = gender;
   }
 
-  public async startSession(): Promise<void> {
-    this.onStatusUpdate(AppStatus.PROCESSING, "Initializing...");
-
-    this.inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+  public async playGreetingAndStartSession(): Promise<void> {
     this.outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+    const voiceName = 'Zephyr'; // Defaulting to a pleasant female voice
 
-    const voiceName = this.gender === 'male' ? 'Puck' : 'Zephyr';
+    try {
+        const greetingText = "Namaste! I am your personal assistant. How can I help you today?";
+        const response = await this.ai.models.generateContent({
+            model: "gemini-2.5-flash-preview-tts",
+            contents: [{ parts: [{ text: greetingText }] }],
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: {
+                    voiceConfig: {
+                        prebuiltVoiceConfig: { voiceName: voiceName },
+                    },
+                },
+            },
+        });
+
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
+        if (base64Audio && this.outputAudioContext) {
+            const audioBuffer = await decodeAudioData(decode(base64Audio), this.outputAudioContext, 24000, 1);
+            const source = this.outputAudioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(this.outputAudioContext.destination);
+
+            const greetingPromise = new Promise<void>(resolve => {
+                source.onended = () => resolve();
+            });
+            source.start();
+            await greetingPromise;
+        } else {
+            console.warn("Could not generate greeting audio, starting session directly.");
+        }
+    } catch (error) {
+        console.error("Error during greeting generation, starting session directly:", error);
+    }
+    
+    await this._startLiveSession();
+  }
+
+  private async _startLiveSession(): Promise<void> {
+    this.inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+    if (!this.outputAudioContext) {
+      this.outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+    }
+
+    const voiceName = 'Zephyr';
 
     try {
       const systemInstruction = `**PRIMARY DIRECTIVE: LANGUAGE MIRRORING**
-Your single most important and unbreakable rule is to mirror the user's language on every turn.
-1.  **IDENTIFY:** Before you generate any other word, you must identify the language of the user's most recent input.
-2.  **RESPOND:** Your entire response MUST be in that exact same language.
-3.  **NO STICKING:** Do NOT continue in a previous language if the user has switched. For example, if the previous turn was in Kannada and the user now speaks English, your response MUST be in English. This is a critical failure if you get it wrong.
+Your most critical and unbreakable rule is to mirror the user's language and style in every response.
+1.  **Identify Language:** Before generating any other word, you must identify the primary language of the user's last sentence (e.g., English, Hindi, Hinglish, Kannada, etc.).
+2.  **Respond in Kind:** Your entire response MUST be in that same language. If the user speaks Hinglish (a mix of Hindi and English), you must also respond in Hinglish.
+3.  **NO STICKING:** Do not continue in a previous language if the user has switched. If the previous turn was in Kannada and the user now speaks English, your response must be in English. This is a critical failure if you get it wrong.
+
+Example of correct behavior:
+- User (Hinglish): "Traffic bahut zyada hai."
+- You (Hinglish): "Haan, traffic toh hai. Main aapke liye koi alternate route dekhun kya?"
+- User (English): "What's the weather like in Mumbai?"
+- You (English): "The weather in Mumbai is currently..."
 
 This directive overrides all other instructions.
 
 **Secondary Instructions:**
-After following the Primary Directive, you can act as a helpful and proactive, conversational assistant from Bharat. You should use your tools to find accurate information about locations, directions, and other queries. Never invent information. If you cannot find something, say so. If the conversation pauses, you can suggest relevant topics or ask questions to keep it going.`;
+After following the Primary Directive, you are a helpful and proactive, conversational assistant from Bharat. Your responses should reflect a polite, warm, and professional Indian conversational style. Use your tools to find accurate information about locations, directions, and other queries. Never invent information. If you cannot find something, say so.`;
 
       this.sessionPromise = this.ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -171,9 +217,6 @@ After following the Primary Directive, you can act as a helpful and proactive, c
     if (message.serverContent?.inputTranscription) {
       this.onStatusUpdate(AppStatus.PROCESSING);
       const text = message.serverContent.inputTranscription.text;
-      // FIX: The `isFinal` property does not exist on `inputTranscription`.
-      // The transcript is considered interim here and will be finalized
-      // when a `turnComplete` message is received.
       this.currentInputTranscription = text;
       this.onTranscriptUpdate({ author: 'user', text: this.currentInputTranscription, isFinal: false });
     }
@@ -202,7 +245,6 @@ After following the Primary Directive, you can act as a helpful and proactive, c
     if (message.serverContent?.turnComplete) {
       this.onStatusUpdate(AppStatus.LISTENING);
       if (this.currentInputTranscription) {
-        // This case might not be hit if isFinal is handled above, but as a fallback.
         this.onTranscriptUpdate({ author: 'user', text: this.currentInputTranscription, isFinal: true });
         this.currentInputTranscription = '';
       }

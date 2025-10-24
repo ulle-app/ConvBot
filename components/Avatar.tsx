@@ -12,6 +12,7 @@ const OrbAvatar: React.FC<{ status: AppStatus }> = ({ status }) => {
       case AppStatus.SPEAKING:
         return 'animate-speak-pulse';
       case AppStatus.PROCESSING:
+      case AppStatus.GREETING:
         return 'animate-thinking-pulse';
       default:
         return '';
@@ -41,12 +42,12 @@ const OrbAvatar: React.FC<{ status: AppStatus }> = ({ status }) => {
         )}
         
         {/* Processing Wave */}
-        {status === AppStatus.PROCESSING && (
+        {(status === AppStatus.PROCESSING || status === AppStatus.GREETING) && (
             <circle cx="100" cy="100" r="75" stroke="rgba(165, 180, 252, 0.4)" strokeWidth="1.5" className="animate-thinking-wave" />
         )}
 
         {/* Main Orb */}
-        <circle cx="100" cy="100" r="70" fill="rgba(79, 70, 229, 0.8)" stroke="#a5b4fc" strokeWidth="1" />
+        <circle cx="100" cy="100" r="70" fill="rgb(79, 70, 229)" stroke="#a5b4fc" strokeWidth="1.5" />
         
         {/* Core */}
         <circle cx="100" cy="100" r="50" fill="url(#orb-core)" className={getCoreClasses()} />
@@ -56,7 +57,7 @@ const OrbAvatar: React.FC<{ status: AppStatus }> = ({ status }) => {
 
 
 export const Avatar: React.FC<AvatarProps> = ({ status, size = 'large' }) => {
-  const sizeClasses = size === 'large' ? 'w-48 h-48 md:w-64 md:h-64' : 'w-24 h-24';
+  const sizeClasses = size === 'large' ? 'w-40 h-40' : 'w-24 h-24';
 
   const getStatusClasses = () => {
     switch (status) {
