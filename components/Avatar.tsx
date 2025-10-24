@@ -6,7 +6,19 @@ interface AvatarProps {
   size?: 'small' | 'large';
 }
 
-const OrbAvatar: React.FC<{ status: AppStatus }> = ({ status }) => (
+const OrbAvatar: React.FC<{ status: AppStatus }> = ({ status }) => {
+  const getCoreClasses = () => {
+    switch (status) {
+      case AppStatus.SPEAKING:
+        return 'animate-speak-pulse';
+      case AppStatus.PROCESSING:
+        return 'animate-thinking-pulse';
+      default:
+        return '';
+    }
+  };
+  
+  return (
     <svg width="100%" height="100%" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
             <radialGradient id="orb-glow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
@@ -28,13 +40,19 @@ const OrbAvatar: React.FC<{ status: AppStatus }> = ({ status }) => (
             <circle cx="100" cy="100" r="70" stroke="#a5b4fc" strokeWidth="2" className="animate-speak-ripple" />
         )}
         
+        {/* Processing Wave */}
+        {status === AppStatus.PROCESSING && (
+            <circle cx="100" cy="100" r="75" stroke="rgba(165, 180, 252, 0.4)" strokeWidth="1.5" className="animate-thinking-wave" />
+        )}
+
         {/* Main Orb */}
         <circle cx="100" cy="100" r="70" fill="rgba(79, 70, 229, 0.8)" stroke="#a5b4fc" strokeWidth="1" />
         
         {/* Core */}
-        <circle cx="100" cy="100" r="50" fill="url(#orb-core)" className={status === AppStatus.SPEAKING ? 'animate-speak-pulse' : ''} />
+        <circle cx="100" cy="100" r="50" fill="url(#orb-core)" className={getCoreClasses()} />
     </svg>
-);
+  );
+};
 
 
 export const Avatar: React.FC<AvatarProps> = ({ status, size = 'large' }) => {
@@ -44,8 +62,6 @@ export const Avatar: React.FC<AvatarProps> = ({ status, size = 'large' }) => {
     switch (status) {
       case AppStatus.LISTENING:
         return 'animate-pulse';
-      case AppStatus.PROCESSING:
-        return 'animate-spin';
       default:
         return '';
     }

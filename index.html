@@ -6,6 +6,9 @@
     <title>Indian Language Voice Assistant</title>
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#111827">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Devanagari&family=Noto+Sans+Kannada&family=Noto+Sans+Tamil&family=Noto+Sans+Telugu&family=Noto+Sans+Bengali&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
   <script type="importmap">
 {
@@ -18,6 +21,10 @@
 }
 </script>
   <style>
+    body, .font-sans {
+      font-family: 'Noto Sans', 'Noto Sans Devanagari', 'Noto Sans Kannada', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Bengali', sans-serif;
+    }
+
     @keyframes speak-pulse {
       0%, 100% { transform: scale(0.95); opacity: 0.9; }
       50% { transform: scale(1.1); opacity: 1; }
@@ -34,6 +41,24 @@
     .animate-speak-ripple {
       animation: speak-ripple 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
       transform-origin: center;
+    }
+
+    @keyframes thinking-pulse {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.05); filter: brightness(1.15); }
+    }
+    .animate-thinking-pulse {
+      animation: thinking-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      transform-origin: center;
+    }
+
+    @keyframes thinking-wave {
+        0% { transform: scale(0.9); opacity: 0.6; }
+        100% { transform: scale(1.3); opacity: 0; }
+    }
+    .animate-thinking-wave {
+        animation: thinking-wave 2.5s ease-out infinite;
+        transform-origin: center;
     }
   </style>
 </head>
